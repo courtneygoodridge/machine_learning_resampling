@@ -4,7 +4,13 @@ Created on Thu Nov  2 15:44:21 2023
 
 @author: psccgoo
 """
+"""
 
+This file will focus on a machine learning technique called Synthetic Minority Oversampling Technique (SMOTE) to account for the fact that certain data types are imbalanced.
+Modelling imbalanced is tricky, because the lack of one response can bias the model. However, the response that is lacking is usually the on of interest. 
+In this example, the minority class is collisions in a driving experiment. However, this method of resmapling can be applied to many other disciplines.  
+
+"""
 # data manipulation
 import pandas as pd
 import numpy as np 
@@ -56,6 +62,43 @@ gaze_entropy_filtered = gaze_entropy \
        
 # merging participant information and gaze data
 gaze_entropy_filtered.merge(participant_info, how = "left", on = 'ppid')
+
+# merging gaze data with vehicle data
+modelling_data = vehicle_data_filtered.merge(gaze_entropy_filtered, how = "left", on = "trialid") \
+    .dropna()
+
+## Initial plotting
+"""
+The data loaded above comes from a driving experiment. In the experiment, drivers we in an automated vehicle. 
+In on condition, they have to complete a distracting task during the automation; in the other condition, they just monitored the road. 
+After approximately 2 minutes, drivers had to takeover from automation because a vehicle in front of them began to decelerate. To takeover, drivers had to brake.
+Most drivers managed this sucessfully, however some drivers crashed. 
+For furture driver monitoring systems, it would be useful if we could predict whether people are going to crash, based on their behaviour during the automated drive. 
+One way to do this is through eye movements. In the datafame, *gte.norm* is a measure of eye movements. Higher values = more erratic scanning patteners; lower values = less erratic scanning patterns. 
+
+So, can we use this metric to predict whether drivers crashed when asked to takeover from an automated vehicle?
+"""
+# Here we plot the collision data as a function of GTE. 
+# There are very few collisions overall. 
+# However, people who do have collision tend to have higher GTE. 
+# This could be indicative that more erratic gaze behaviours during automation are predictive of collisions.
+plt.scatter(modelling_data['gte.norm'], modelling_data['collision_new'])
+plt.xlabel("Gaze Transition Entropy (Higher = more erratic eye movements)")
+plt.ylabel("Collision")
+
+# how many people crash? 21 
+modelling_data \
+    .loc[modelling_data['collision'] == 1] \
+        .groupby(['ppid_x']) \
+            .head(1)[['ppid_x']] \
+                .nunique()
+                
+# how many crashes per persons
+modelling_data.loc[modelling_data['collision'] == 1].groupby(['ppid_x']).size().reset_index(name = "number_of_collisions")
+    
+                
+
+
 
 
 # load in critical data
